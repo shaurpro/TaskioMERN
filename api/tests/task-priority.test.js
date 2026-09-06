@@ -202,7 +202,7 @@ test('getAll with duplicate priority query params is invalid', async () => {
   await taskController.getAll({ query: { priority: ['HIGH', 'LOW'] } }, res);
 
   assert.equal(res.statusCode, 400);
-  assert.deepEqual(res.body, { error: 'Invalid priority value' });
+  assert.deepEqual(res.body, { error: 'Invalid query parameter value' });
 });
 
 test('getAll with whitespace priority query is invalid', async () => {
@@ -211,6 +211,99 @@ test('getAll with whitespace priority query is invalid', async () => {
 
   assert.equal(res.statusCode, 400);
   assert.deepEqual(res.body, { error: 'Invalid priority value' });
+});
+
+test('getAll with completed=true returns only completed tasks', async () => {
+  await TaskModel.insertMany([
+    buildTask({ title: 'Done', completed: true, priority: 'HIGH' }),
+    buildTask({ title: 'Pending', completed: false, priority: 'LOW' }),
+  ]);
+
+  const res = createMockRes();
+  await taskController.getAll({ query: { completed: 'true' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.tasks.length, 1);
+  assert.equal(res.body.tasks[0].completed, true);
+});
+
+test('getAll with completed=false returns only incomplete tasks', async () => {
+  await TaskModel.insertMany([
+    buildTask({ title: 'Done', completed: true, priority: 'HIGH' }),
+    buildTask({ title: 'Pending', completed: false, priority: 'LOW' }),
+  ]);
+
+  const res = createMockRes();
+  await taskController.getAll({ query: { completed: 'false' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.tasks.length, 1);
+  assert.equal(res.body.tasks[0].completed, false);
+});
+
+test('getAll with priority absent and completed present returns filtered completed tasks', async () => {
+  await TaskModel.insertMany([
+    buildTask({ title: 'Done', completed: true, priority: 'HIGH' }),
+    buildTask({ title: 'Pending', completed: false, priority: 'LOW' }),
+    buildTask({ title: 'Another done', completed: true, priority: 'MEDIUM' }),
+  ]);
+
+  const res = createMockRes();
+  await taskController.getAll({ query: { completed: 'true' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.tasks.length, 2);
+  assert.ok(res.body.tasks.every((task) => task.completed === true));
+});
+
+test('getAll with all six priority and completed combinations works', async () => {
+  const combos = [
+    ['HIGH', 'true'],
+    ['HIGH', 'false'],
+    ['MEDIUM', 'true'],
+    ['MEDIUM', 'false'],
+    ['LOW', 'true'],
+    ['LOW', 'false'],
+  ];
+
+  for (const [priority, completed] of combos) {
+    await TaskModel.insertMany([
+      buildTask({ title: `${priority}-${completed}-a`, priority, completed: completed === 'true' }),
+      buildTask({ title: `${priority}-${completed}-b`, priority: 'LOW', completed: completed === 'false' }),
+    ]);
+  }
+
+  const res = createMockRes();
+  await taskController.getAll({ query: { priority: 'HIGH', completed: 'false' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.tasks.length, 1);
+  assert.equal(res.body.tasks[0].priority, 'HIGH');
+  assert.equal(res.body.tasks[0].completed, false);
+});
+
+test('getAll with invalid completed value returns client error', async () => {
+  const res = createMockRes();
+  await taskController.getAll({ query: { completed: 'maybe' } }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.body, { error: 'Invalid completed value' });
+});
+
+test('getAll with invalid priority and invalid completed together returns client error', async () => {
+  const res = createMockRes();
+  await taskController.getAll({ query: { priority: 'URGENT', completed: 'maybe' } }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.body, { error: 'Invalid priority value' });
+});
+
+test('getAll with duplicate completed query params is invalid', async () => {
+  const res = createMockRes();
+  await taskController.getAll({ query: { completed: ['true', 'false'] } }, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.body, { error: 'Invalid query parameter value' });
 });
 
 for (const priority of validPriorities) {

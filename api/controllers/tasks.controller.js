@@ -16,31 +16,44 @@ const foodController = {
   },
   getAll: async (req, res) => {
     const allowedPriorities = ["LOW", "MEDIUM", "HIGH"];
-    const rawPriority = req.query.priority;
+    const allowedCompleted = ["true", "false"];
 
-    if (Array.isArray(rawPriority)) {
-      return res.status(400).json({ error: "Invalid priority value" });
+    const rawPriority = req.query.priority;
+    const rawCompleted = req.query.completed;
+
+    if (Array.isArray(rawPriority) || Array.isArray(rawCompleted)) {
+      return res.status(400).json({ error: "Invalid query parameter value" });
     }
 
     const priority = typeof rawPriority === "string" ? rawPriority.trim() : rawPriority;
+    const completedValue = typeof rawCompleted === "string" ? rawCompleted.trim() : rawCompleted;
 
-    if (priority === "" || priority === null || priority === undefined) {
-      if (rawPriority !== undefined) {
-        return res.status(400).json({ error: "Invalid priority value" });
-      }
-    }
-
-    if (priority && !allowedPriorities.includes(priority)) {
+    if (
+      rawPriority !== undefined &&
+      (priority === "" || priority === null || !allowedPriorities.includes(priority))
+    ) {
       return res.status(400).json({ error: "Invalid priority value" });
     }
 
-    const query = priority ? { priority } : {};
+    if (
+      rawCompleted !== undefined &&
+      (completedValue === "" || completedValue === null || !allowedCompleted.includes(completedValue))
+    ) {
+      return res.status(400).json({ error: "Invalid completed value" });
+    }
 
-    if (priority === "MEDIUM") {
-      const tasks = await TaskModel.find({
-        $or: [{ priority: "MEDIUM" }, { priority: { $exists: false } }],
-      });
-      return res.json({ tasks });
+    const query = {};
+
+    if (priority) {
+      if (priority === "MEDIUM") {
+        query.$or = [{ priority: "MEDIUM" }, { priority: { $exists: false } }];
+      } else {
+        query.priority = priority;
+      }
+    }
+
+    if (rawCompleted !== undefined) {
+      query.completed = completedValue === "true";
     }
 
     const tasks = await TaskModel.find(query);

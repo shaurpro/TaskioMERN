@@ -9,12 +9,22 @@ import { useQuery, useQueryClient } from "react-query";
 
 export default function Home() {
   const [selectedPriority, setSelectedPriority] = useState("ALL");
+  const [selectedCompleted, setSelectedCompleted] = useState("ALL");
   const [isOpen, setIsOpen] = useState(false);
   const client = useQueryClient();
 
-  const { data } = useQuery(["getAllTasks", selectedPriority], async () => {
-    const priority = selectedPriority === "ALL" ? "" : selectedPriority;
-    const query = priority ? `?priority=${encodeURIComponent(priority)}` : "";
+  const { data } = useQuery(["getAllTasks", selectedPriority, selectedCompleted], async () => {
+    const params = new URLSearchParams();
+
+    if (selectedPriority !== "ALL") {
+      params.set("priority", selectedPriority);
+    }
+
+    if (selectedCompleted !== "ALL") {
+      params.set("completed", selectedCompleted);
+    }
+
+    const query = params.toString() ? `?${params.toString()}` : "";
     const resp = await fetch(`${apiUrl}/api/v1/tasks${query}`);
     return resp.json();
   });
@@ -29,7 +39,7 @@ export default function Home() {
           <p>Empower Your Productivity: Manage Tasks Effortlessly.</p>
         </div>
       </div>
-      <div className="mt-[2rem] flex items-center gap-3">
+      <div className="mt-[2rem] flex items-center gap-3 flex-wrap justify-center">
         <button
           type="button"
           className="px-4 py-2 bg-blue-500 text-white rounded-3xl text-2xl font-extrabold"
@@ -42,10 +52,19 @@ export default function Home() {
           onChange={(e) => setSelectedPriority(e.target.value)}
           className="border-2 border-blue-500 rounded-md px-2 py-2"
         >
-          <option value="ALL">All</option>
+          <option value="ALL">All priorities</option>
           <option value="LOW">Low</option>
           <option value="MEDIUM">Medium</option>
           <option value="HIGH">High</option>
+        </select>
+        <select
+          value={selectedCompleted}
+          onChange={(e) => setSelectedCompleted(e.target.value)}
+          className="border-2 border-blue-500 rounded-md px-2 py-2"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="true">Completed</option>
+          <option value="false">Not completed</option>
         </select>
       </div>
       <div className="flex flex-col gap-3 mt-5 w-full md:w-[500px] px-3 mb-9 ">
