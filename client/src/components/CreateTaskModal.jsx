@@ -5,7 +5,11 @@ import { useQueryClient } from "react-query";
 
 
 export const CreateTaskModal = ({ onRequestClose, open }) => {
-  const [formData, setFormData] = useState({ title: "", description: "" });
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+  });
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
@@ -60,6 +64,19 @@ export const CreateTaskModal = ({ onRequestClose, open }) => {
               setFormData((prev) => ({ ...prev, description: e.target.value }))
             }
           />
+          <label>Priority</label>
+          <select
+            className="input"
+            name="priority"
+            value={formData.priority}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, priority: e.target.value }))
+            }
+          >
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
           {error ? <p className="text-red-300">{error}</p> : null}
           <div className="flex gap-4">
             <button

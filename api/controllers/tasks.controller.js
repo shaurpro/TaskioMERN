@@ -14,19 +14,51 @@ const foodController = {
 
     return res.json({ task }).status(200);
   },
-  getAll: async (_req, res) => {
-    const tasks = await TaskModel.find();
+  getAll: async (req, res) => {
+    const allowedPriorities = ["LOW", "MEDIUM", "HIGH"];
+    const rawPriority = req.query.priority;
+
+    if (Array.isArray(rawPriority)) {
+      return res.status(400).json({ error: "Invalid priority value" });
+    }
+
+    const priority = typeof rawPriority === "string" ? rawPriority.trim() : rawPriority;
+
+    if (priority === "" || priority === null || priority === undefined) {
+      if (rawPriority !== undefined) {
+        return res.status(400).json({ error: "Invalid priority value" });
+      }
+    }
+
+    if (priority && !allowedPriorities.includes(priority)) {
+      return res.status(400).json({ error: "Invalid priority value" });
+    }
+
+    const query = priority ? { priority } : {};
+
+    if (priority === "MEDIUM") {
+      const tasks = await TaskModel.find({
+        $or: [{ priority: "MEDIUM" }, { priority: { $exists: false } }],
+      });
+      return res.json({ tasks });
+    }
+
+    const tasks = await TaskModel.find(query);
     return res.json({ tasks });
   },
   createTask: async (req, res) => {
-    const bodyParams = _.pick(req.body, ["title", "description"]);
+    const bodyParams = _.pick(req.body, ["title", "description", "priority"]);
 
     if (!bodyParams.title || !bodyParams.description) {
       return res.json({ error: "You must provide all the fields" }).status(400);
     }
 
     try {
-      let task = new TaskModel({ ...bodyParams });
+      const task = new TaskModel({
+        title: bodyParams.title,
+        description: bodyParams.description,
+        priority: bodyParams.priority,
+      });
 
       await task.save();
 
@@ -64,16 +96,30 @@ const foodController = {
     }
   },
   updateTask: async (req, res) => {
-    const bodyParams = _.pick(req.body, ["title", "description", "id"]);
+    const bodyParams = _.pick(req.body, ["title", "description", "priority", "id"]);
 
-    if (!bodyParams.title || bodyParams.description || bodyParams.id) {
+    if (!bodyParams.title || !bodyParams.description || !bodyParams.id) {
       return res.json({ error: "You must provide all the fields" }).status(400);
     }
 
+    if (bodyParams.priority === "" || bodyParams.priority === null || bodyParams.priority === undefined) {
+      return res.json({ error: "Invalid priority value" }).status(400);
+    }
+
     try {
-      let task = await TaskModel.findOneAndUpdate(
-        { _id: id },
-        { ...bodyParams }
+      const updateData = {
+        title: bodyParams.title,
+        description: bodyParams.description,
+      };
+
+      if (bodyParams.priority) {
+        updateData.priority = bodyParams.priority;
+      }
+
+      const task = await TaskModel.findOneAndUpdate(
+        { _id: bodyParams.id },
+        updateData,
+        { new: true, runValidators: true }
       );
 
       return res.json({ task, success: true }).status(200);

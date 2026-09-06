@@ -1,5 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
+dotenv.config();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const debug = require("debug")("api");
@@ -8,7 +9,7 @@ const taskRoutes = require("./routes/tasks");
 const { connectDb } = require("./config/connection");
 
 // LOAD ENV VARS
-dotenv.config();
+
 
 async function main() {
   debug("booting %o", "App");

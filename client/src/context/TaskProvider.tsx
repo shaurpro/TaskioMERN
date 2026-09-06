@@ -6,21 +6,22 @@ const TaskContext = createContext({ tasks: [] });
 
 export default TaskContext;
 
-const getTasks = async () => {
-  const resp = await fetch(`${apiUrl}/api/v1/tasks`);
+const getTasks = async (priority = "") => {
+  const query = priority ? `?priority=${encodeURIComponent(priority)}` : "";
+  const resp = await fetch(`${apiUrl}/api/v1/tasks${query}`);
 
   return resp.json();
 };
 
-export const TaskContextProvider = ({ children }) => {
-  const { data, isLoading } = useQuery(["getAllTasks"], getTasks);
+export const TaskContextProvider = ({ children, priority = "" }) => {
+  const { data, isLoading } = useQuery(["getAllTasks", priority], () => getTasks(priority));
 
   if (isLoading) {
     return <div>loading...</div>;
   }
 
   return (
-    <TaskContext.Provider value={{ tasks: data.tasks }}>
+    <TaskContext.Provider value={{ tasks: data.tasks || [] }}>
       {children}
     </TaskContext.Provider>
   );

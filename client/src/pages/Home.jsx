@@ -3,15 +3,23 @@ import React, { useState } from "react";
 import { PenIcon, BanIcon } from "lucide-react";
 
 import { CreateTaskModal } from "../components/CreateTaskModal";
-import { useTasks } from "../context/TaskProvider";
 import { Link } from "react-router-dom";
 import { apiUrl } from "../lib/constants";
-import { useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "react-query";
 
 export default function Home() {
-  const { tasks } = useTasks();
+  const [selectedPriority, setSelectedPriority] = useState("ALL");
   const [isOpen, setIsOpen] = useState(false);
   const client = useQueryClient();
+
+  const { data } = useQuery(["getAllTasks", selectedPriority], async () => {
+    const priority = selectedPriority === "ALL" ? "" : selectedPriority;
+    const query = priority ? `?priority=${encodeURIComponent(priority)}` : "";
+    const resp = await fetch(`${apiUrl}/api/v1/tasks${query}`);
+    return resp.json();
+  });
+
+  const tasks = data?.tasks || [];
 
   return (
     <main className="flex flex-col w-full h-full justify-center items-center overflow-y-auto">
@@ -21,7 +29,7 @@ export default function Home() {
           <p>Empower Your Productivity: Manage Tasks Effortlessly.</p>
         </div>
       </div>
-      <div className="mt-[2rem]">
+      <div className="mt-[2rem] flex items-center gap-3">
         <button
           type="button"
           className="px-4 py-2 bg-blue-500 text-white rounded-3xl text-2xl font-extrabold"
@@ -29,6 +37,16 @@ export default function Home() {
         >
          +
         </button>
+        <select
+          value={selectedPriority}
+          onChange={(e) => setSelectedPriority(e.target.value)}
+          className="border-2 border-blue-500 rounded-md px-2 py-2"
+        >
+          <option value="ALL">All</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
       </div>
       <div className="flex flex-col gap-3 mt-5 w-full md:w-[500px] px-3 mb-9 ">
         {tasks.map((task, idx) => (
@@ -36,8 +54,21 @@ export default function Home() {
             key={task._id}
             className="bg-white-500 border-blue-500 border-2 px-3 py-2 min-h-24 rounded-md cursor-pointer"
           >
-            <div className="flex w-full justify-between">
-              <p className="font-bold">{task.title}</p>
+            <div className="flex w-full justify-between items-start gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="font-bold">{task.title}</p>
+                <span
+                  className={`inline-flex w-fit items-center rounded-full px-2 py-1 text-xs font-medium ${
+                    task.priority === "HIGH"
+                      ? "bg-red-100 text-red-700"
+                      : task.priority === "LOW"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {task.priority || "MEDIUM"}
+                </span>
+              </div>
               <div className="flex gap-4 px-8">
                 <Link to={`/edit/${task._id}`}>
                   <PenIcon className="h-5 w-5 text-s" />

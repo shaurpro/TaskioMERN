@@ -4,7 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../lib/constants";
 
 export default function EditTodoForm() {
-  const [formData, setFormData] = useState({ title: "", description: "" });
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+  });
   const [error, setError] = useState("");
 
   const queryClient = useQueryClient();
@@ -61,6 +65,19 @@ export default function EditTodoForm() {
               setFormData((prev) => ({ ...prev, description: e.target.value }))
             }
           />
+          <label>Priority</label>
+          <select
+            className="input"
+            name="priority"
+            value={formData.priority}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, priority: e.target.value }))
+            }
+          >
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
           <div className="flex gap-5">
             <input type="checkbox" name="completed" />
             <label>Completed</label>
